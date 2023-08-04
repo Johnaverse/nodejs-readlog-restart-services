@@ -7,8 +7,8 @@ const app = express();
 
 const serviceName = process.env.MONITOR_SERVICE_NAME ? process.env.MONITOR_SERVICE_NAME : 'ssh';          // Service Name. Default ssh.
 const numLines = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 50;                                // Number of lines to read from the log 
-const thresholds = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 15;
-const phraseToFind = process.env.Phrase_To_Find ? process.env.Phrase_To_Find :'ERR';                                                                               //
+const thresholds = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 15;                              // Thresholds triger restart
+const phraseToFind = process.env.Phrase_To_Find ? process.env.Phrase_To_Find : 'ERR';                     // phrase for finding triget log
 const PromPort = process.env.PROM_PORT ? process.env.PROM_PORT : 9102;                                    // prometheus port. Default 9102.
 
 const Registry = client.Registry;
