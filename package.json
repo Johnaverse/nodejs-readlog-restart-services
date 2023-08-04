@@ -1,0 +1,26 @@
+{
+  "name": "nodejs-readlog-restart-services",
+  "version": "1.0.0",
+  "description": "",
+  "main": "monitor.js",
+  "scripts": {
+    "start": "node ./monitor.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Johnaverse/nodejs-readlog-restart-services.git"
+  },
+  "author": "Johnathan Leung",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Johnaverse/nodejs-readlog-restart-services/issues"
+  },
+  "homepage": "https://github.com/Johnaverse/nodejs-readlog-restart-services#readme",
+  "dependencies": {
+    "child_process": "^1.0.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "prom-client": "^14.2.0"
+  }
+}
