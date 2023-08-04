@@ -4,8 +4,8 @@
   "description": "",
   "main": "monitor.js",
   "scripts": {
-    "start": "node ./monitor.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build linux": "pkg ./monitor.js --target latest --output readlog--services-linux",
+    "start": "node ./monitor.js"
   },
   "repository": {
     "type": "git",
