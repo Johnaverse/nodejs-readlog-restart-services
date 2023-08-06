@@ -85,6 +85,7 @@ function start() {
     try {
         if (checkServiceStatus(serviceName)) {
             const countReturn = countServiceLog(serviceName, numLines, phraseToFind);
+            serviceErrCounter.set(countReturn)
             if (countReturn > thresholds) {
                 restartService(serviceName);
             }
@@ -102,6 +103,6 @@ app.get('/metrics', async (request, response) => {
     response.end(await register.metrics());
 })
 
-app.listen(PromPort, () => {
+app.listen(promPort, () => {
     console.log('Started Prometheus server on port at', promPort)
 })
