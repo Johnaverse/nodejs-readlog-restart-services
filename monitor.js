@@ -12,6 +12,7 @@ const phraseToFind_no_header = process.env.PHRASE_TO_FIND_NO_HEADER ? process.en
 const phraseToFind_no_body = process.env.PHRASE_TO_FIND_NO_BODY ? process.env.PHRASE_TO_FIND_NO_BODY : 'No block bodies to write in this log period block number';                     // phrase for finding trigger log
 const promPort = process.env.PROM_PORT ? process.env.PROM_PORT : 9102;                                    // prometheus port. Default 9102.
 const checkIntervial = process.env.CHECK_INTERVIAL ? process.env.CHECK_INTERVIAL : 60000;                  // check time intervial. Default 60s
+const loglevel = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : INFO;
 
 const Registry = client.Registry;
 const register = new Registry();
@@ -69,6 +70,11 @@ function readServiceLog(serviceName, lines = 50) {
             throw error;
         }
 
+        if (loglevel === "DEBUG") {
+            console.log(`Last ${lines} lines of ${serviceName} log:`);
+            console.log(stdout);
+        }
+
         return (stdout);
     });
 }
@@ -93,6 +99,11 @@ function start() {
         if (checkServiceStatus(serviceName)) {
             const countReturn_noheader = countServiceLog(serviceName, numLines, phraseToFind_no_header);
             const countReturn_nobody = countServiceLog(serviceName, numLines, phraseToFind_no_body);
+            erigonNoHeaderCounter.set(countReturn_noheader)
+            erigonNoBodyCounter.set(countReturn_nobody)
+            if (loglevel === "DEBUG") {
+                console.log({ "countReturn_noheader": countReturn_noheader, "erigonNoBodyCounter": erigonNoBodyCounter })
+            }
             if (countReturn_noheader > thresholds || countReturn_nobody > thresholds) {
                 restartService(serviceName);
             }
@@ -102,7 +113,7 @@ function start() {
     }
 }
 
-setInterval(function () { start(); }, checkIntervial); 
+setInterval(function () { start(); }, checkIntervial);
 
 app.get('/metrics', async (request, response) => {
     response.setHeader('Content-type', register.contentType);
