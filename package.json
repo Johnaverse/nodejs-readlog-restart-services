@@ -4,7 +4,7 @@
   "description": "",
   "main": "monitor.js",
   "scripts": {
-    "build linux": "pkg ./monitor.js --target latest --output readlog--services-linux",
+    "build-linux": "pkg ./monitor.js --target latest --output readlog--services-linux",
     "start": "node ./monitor.js"
   },
   "repository": {
