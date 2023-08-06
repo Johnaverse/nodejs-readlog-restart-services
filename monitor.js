@@ -47,7 +47,7 @@ function restartService(serviceName) {
             throw error;
         }
         serviceRestartCounter.inc();
-        var _counter = await register.getSingleMetricAsString(`process_${serviceName}_restart_total`)
+        var _counter = await register.getSingleMetricAsString(`process_${serviceName}_restart_total`);
         console.log(`${serviceName} restarted successfully. Restart Counter: ${_counter}`);
     });
 }
@@ -85,6 +85,9 @@ function countServiceLog(serviceName, numLines, phrase) {
             readServiceLog(serviceName, numLines).then((stdout) => {
                 const logsArray = stdout.split('\n');
                 const count = logsArray.filter((log) => log.includes(phrase)).length;
+                if (loglevel === "DEBUG") {
+                    console.log(`Last ${serviceName} ${numLines} logs: included ${count} logs with phrase ${phrase}`);
+                }
                 return count;
             })
         }
@@ -99,13 +102,16 @@ function start() {
         if (checkServiceStatus(serviceName)) {
             const countReturn_noheader = countServiceLog(serviceName, numLines, phraseToFind_no_header);
             const countReturn_nobody = countServiceLog(serviceName, numLines, phraseToFind_no_body);
-            erigonNoHeaderCounter.set(countReturn_noheader)
-            erigonNoBodyCounter.set(countReturn_nobody)
-            if (loglevel === "DEBUG") {
-                console.log({ "countReturn_noheader": countReturn_noheader, "erigonNoBodyCounter": erigonNoBodyCounter })
-            }
+            erigonNoHeaderCounter.set(countReturn_noheader);
+            erigonNoBodyCounter.set(countReturn_nobody);
+
             if (countReturn_noheader > thresholds || countReturn_nobody > thresholds) {
+                console.log(`Last ${serviceName} ${numLines} logs over ${thresholds} logs with phrase ${phraseToFind_no_header} or ${phraseToFind_no_body}. Restarting service ...`);
                 restartService(serviceName);
+            }
+            else if(loglevel === "DEBUG"){
+                console.log(`No header occurred times: ${countReturn_noheader} `);
+                console.log(`No body occurred times: ${countReturn_nobody} `);
             }
         }
     } catch (e) {
@@ -120,6 +126,6 @@ app.get('/metrics', async (request, response) => {
     response.end(await register.metrics());
 })
 
-app.listen(PromPort, () => {
-    console.log('Started Prometheus server on port at', promPort)
+app.listen(promPort, () => {
+    console.log('Started Prometheus server on port at', promPort);
 })
