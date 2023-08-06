@@ -8,7 +8,8 @@ const app = express();
 const serviceName = process.env.MONITOR_SERVICE_NAME ? process.env.MONITOR_SERVICE_NAME : 'ssh';          // service name. Default ssh.
 const numLines = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 50;                                // number of lines to read from the log 
 const thresholds = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 15;                              // thresholds trigger restart
-const phraseToFind = process.env.PHRASE_TO_FIND ? process.env.Phrase_To_Find : 'ERR';                     // phrase for finding trigger log
+const phraseToFind_no_header = process.env.PHRASE_TO_FIND_NO_HEADER ? process.env.PHRASE_TO_FIND_NO_HEADER : 'No block headers to write in this log period block number';               // phrase for finding trigger log
+const phraseToFind_no_body = process.env.PHRASE_TO_FIND_NO_BODY ? process.env.PHRASE_TO_FIND_NO_BODY : 'No block bodies to write in this log period block number';                     // phrase for finding trigger log
 const promPort = process.env.PROM_PORT ? process.env.PROM_PORT : 9102;                                    // prometheus port. Default 9102.
 const checkIntervial = process.env.CHECK_INTERVIAL ? process.env.CHECK_INTERVIAL : 60000;                  // check time intervial. Default 60s
 
@@ -20,13 +21,19 @@ const serviceRestartCounter = new client.Counter({
     help: `process ${serviceName} restart counter`,
 });
 
-const serviceErrCounter = new client.Counter({
-    name: `service_${serviceName}_error_counter`,
-    help: `service ${serviceName} error counter`,
+const erigonNoHeaderCounter = new client.Counter({
+    name: `service_${serviceName}_no_header_counter`,
+    help: `service ${serviceName} no header counter`,
+});
+
+const erigonNoBodyCounter = new client.Counter({
+    name: `service_${serviceName}_no_body_counter`,
+    help: `service ${serviceName} no body counter`,
 });
 
 register.registerMetric(serviceRestartCounter);
-register.registerMetric(serviceErrCounter);
+register.registerMetric(erigonNoHeaderCounter);
+register.registerMetric(erigonNoBodyCounter);
 
 register.setDefaultLabels({
     app: 'nodejs-readlog-restart-service'
@@ -84,8 +91,9 @@ function countServiceLog(serviceName, numLines, phrase) {
 function start() {
     try {
         if (checkServiceStatus(serviceName)) {
-            const countReturn = countServiceLog(serviceName, numLines, phraseToFind);
-            if (countReturn > thresholds) {
+            const countReturn_noheader = countServiceLog(serviceName, numLines, phraseToFind_no_header);
+            const countReturn_nobody = countServiceLog(serviceName, numLines, phraseToFind_no_body);
+            if (countReturn_noheader > thresholds || countReturn_nobody > thresholds) {
                 restartService(serviceName);
             }
         }
@@ -94,8 +102,7 @@ function start() {
     }
 }
 
-setInterval(function () { start(); }, checkIntervial); // Run check every 60s
-
+setInterval(function () { start(); }, checkIntervial); 
 
 app.get('/metrics', async (request, response) => {
     response.setHeader('Content-type', register.contentType);
