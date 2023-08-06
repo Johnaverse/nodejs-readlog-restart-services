@@ -7,10 +7,10 @@ const app = express();
 
 const serviceName = process.env.MONITOR_SERVICE_NAME ? process.env.MONITOR_SERVICE_NAME : 'ssh';          // service name. Default ssh.
 const numLines = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 50;                                // number of lines to read from the log 
-const thresholds = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 15;                              // thresholds triger restart
-const phraseToFind = process.env.PHRASE_TO_FIND ? process.env.Phrase_To_Find : 'ERR';                     // phrase for finding triget log
+const thresholds = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 15;                              // thresholds trigger restart
+const phraseToFind = process.env.PHRASE_TO_FIND ? process.env.Phrase_To_Find : 'ERR';                     // phrase for finding trigger log
 const promPort = process.env.PROM_PORT ? process.env.PROM_PORT : 9102;                                    // prometheus port. Default 9102.
-const checkInterval = process.env.CHECK_INTERIVAL ? process.env.CHECK_INTERIVAL : 60000;                  // check time interval. Default 60s
+const checkIntervial = process.env.CHECK_INTERVIAL ? process.env.CHECK_INTERVIAL : 60000;                  // check time intervial. Default 60s
 
 const Registry = client.Registry;
 const register = new Registry();
@@ -94,7 +94,7 @@ function start() {
     }
 }
 
-setInterval(function () { start(); }, checkInterval); // Run check every 60s
+setInterval(function () { start(); }, checkIntervial); // Run check every 60s
 
 
 app.get('/metrics', async (request, response) => {
