@@ -1,6 +1,7 @@
 const express = require("express")
 const { exec } = require('child_process');
 const client = require('prom-client');
+const { error } = require("console");
 require('dotenv').config();
 
 const app = express();
@@ -22,12 +23,12 @@ const serviceRestartCounter = new client.Counter({
     help: `process ${serviceName} restart counter`,
 });
 
-const erigonNoHeaderCounter = new client.Counter({
+const erigonNoHeaderCounter = new client.Gauge({
     name: `service_${serviceName}_no_header_counter`,
     help: `service ${serviceName} no header counter`,
 });
 
-const erigonNoBodyCounter = new client.Counter({
+const erigonNoBodyCounter = new client.Gauge({
     name: `service_${serviceName}_no_body_counter`,
     help: `service ${serviceName} no body counter`,
 });
@@ -37,85 +38,98 @@ register.registerMetric(erigonNoHeaderCounter);
 register.registerMetric(erigonNoBodyCounter);
 
 function restartService(serviceName) {
-    exec(`sudo systemctl restart ${serviceName}`, async (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error starting ${serviceName}: ${error.message}`);
-            throw error;
-        }
-        serviceRestartCounter.inc();
-        var _counter = await register.getSingleMetricAsString(`process_${serviceName}_restart_total`);
-        console.log(`${serviceName} restarted successfully. Restart Counter: ${_counter}`);
+    return new Promise((resolve, rejects) => {
+        exec(`sudo systemctl restart ${serviceName}`, async (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error starting ${serviceName}: ${error.message}`);
+                rejects(error);
+            }
+            serviceRestartCounter.inc();
+            var _counter = await register.getSingleMetricAsString(`process_${serviceName}_restart_total`);
+            console.log(`${serviceName} restarted successfully. Restart Counter: ${_counter}`);
+            resolve();
+        });
     });
 }
 
 function checkServiceStatus(serviceName) {
-    exec(`systemctl is-active ${serviceName}`, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error checking status of ${serviceName}: ${error.message}`);
-            throw error;
-        }
-        const isActive = stdout.trim() === 'active';
-        return isActive ? true : false;
+    return new Promise((resolve, rejects) => {
+        exec(`systemctl is-active ${serviceName}`, (error, stdout, stderr) => {
+            if (error) {
+                if (loglevel == "DEBUG") {
+                    console.error(`Error checking status of ${serviceName}: ${error.message}`);
+                }
+                resolve(false);
+            }
+            const isActive = stdout.trim() === 'active';
+            resolve(isActive ? true : false);
+        });
     });
 }
 
 function readServiceLog(serviceName, lines = 50) {
-    exec(`journalctl -u ${serviceName} -n ${lines}`, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error reading ${serviceName} log: ${error.message}`);
-            throw error;
-        }
+    return new Promise((resolve, rejects) => {
+        exec(`journalctl -u ${serviceName} -n ${lines}`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error reading ${serviceName} log: ${error.message}`);
+                rejects(error);
+            }
 
-        if (loglevel == "DEBUG") {
-            console.log(`Last ${lines} lines of ${serviceName} log:`);
-            console.log(stdout);
-        }
+            if (loglevel == "DEBUG") {
+                console.log(`Last ${lines} lines of ${serviceName} log:`);
+                console.log(stdout);
+            }
 
-        return (stdout);
+            resolve(stdout);
+        });
     });
 }
 
 function countServiceLog(serviceName, numLines, phrase) {
-    try {
-        if (checkServiceStatus(serviceName)) {
-            readServiceLog(serviceName, numLines).then((stdout) => {
-                const logsArray = stdout.split('\n');
-                const count = logsArray.filter((log) => log.includes(phrase)).length;
-                if (loglevel == "DEBUG") {
-                    console.log(`Last ${serviceName} ${numLines} logs: included ${count} logs with phrase ${phrase}`);
-                }
-                return count;
-            })
-        }
-    } catch (e) {
-        console.log(e);
-    }
-
+    return new Promise((resolve, rejects) => {
+        checkServiceStatus(serviceName).then((active) => {
+            if (active) {
+                readServiceLog(serviceName, numLines)
+                .then((stdout) => {
+                    const logsArray = stdout.split('\n');
+                    const count = logsArray.filter((log) => log.includes(phrase)).length;
+                    if (loglevel == "DEBUG") {
+                        console.log(`Last ${serviceName} ${numLines} logs: included ${count} logs with phrase ${phrase}`);
+                    }
+                    resolve(count);
+                })
+                .catch((error)=>{rejects(error)});
+            }
+        })
+        .catch((error)=>{rejects(error)});
+    });
 }
 
 function start() {
-    try {
-        if (checkServiceStatus(serviceName)) {
-            const countReturn_noheader = countServiceLog(serviceName, numLines, phraseToFind_no_header);
-            const countReturn_nobody = countServiceLog(serviceName, numLines, phraseToFind_no_body);
-            erigonNoHeaderCounter.set(countReturn_noheader);
-            erigonNoBodyCounter.set(countReturn_nobody);
+    checkServiceStatus(serviceName)
+        .then(async (active) => {
+            if (active) {
+                const countReturn_noheader = await countServiceLog(serviceName, numLines, phraseToFind_no_header);
+                const countReturn_nobody = await countServiceLog(serviceName, numLines, phraseToFind_no_body);
+                erigonNoHeaderCounter.set(countReturn_noheader);
+                erigonNoBodyCounter.set(countReturn_nobody);
 
-            if (countReturn_noheader > thresholds || countReturn_nobody > thresholds) {
-                console.log(`Last ${serviceName} ${numLines} logs over ${thresholds} logs with phrase ${phraseToFind_no_header} or ${phraseToFind_no_body}. Restarting service ...`);
-                restartService(serviceName);
+                if (countReturn_noheader > thresholds || countReturn_nobody > thresholds) {
+                    console.log(`Last ${serviceName} ${numLines} logs over ${thresholds} logs with phrase ${phraseToFind_no_header} or ${phraseToFind_no_body}. Restarting service ...`);
+                    restartService(serviceName);
+                }
+                else if (loglevel == "DEBUG") {
+                    console.log(`No header occurred times: ${countReturn_noheader} `);
+                    console.log(`No body occurred times: ${countReturn_nobody} `);
+                }
             }
-            else if(loglevel == "DEBUG"){
-                console.log(`No header occurred times: ${countReturn_noheader} `);
-                console.log(`No body occurred times: ${countReturn_nobody} `);
+            else {
+                console.error(`Error checking status of ${serviceName}: non-active state`);
             }
-        }
-        else {
-            console.error(`Error checking status of ${serviceName}: non-active state`);
-        }
-    } catch (e) {
-        console.log(e);
-    }
+        })
+        .catch((e) => {
+            console.log(e);
+        })
 }
 
 setInterval(function () { start(); }, checkIntervial);
