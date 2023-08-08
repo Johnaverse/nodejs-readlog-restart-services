@@ -12,7 +12,7 @@ const phraseToFind_no_header = process.env.PHRASE_TO_FIND_NO_HEADER ? process.en
 const phraseToFind_no_body = process.env.PHRASE_TO_FIND_NO_BODY ? process.env.PHRASE_TO_FIND_NO_BODY : 'No block bodies to write in this log period block number';                     // phrase for finding trigger log
 const promPort = process.env.PROM_PORT ? process.env.PROM_PORT : 9102;                                    // prometheus port. Default 9102.
 const checkIntervial = process.env.CHECK_INTERVIAL ? process.env.CHECK_INTERVIAL : 60000;                  // check time intervial. Default 60s
-const loglevel = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : INFO;
+const loglevel = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : "INFO";
 
 const Registry = client.Registry;
 const register = new Registry();
@@ -70,7 +70,7 @@ function readServiceLog(serviceName, lines = 50) {
             throw error;
         }
 
-        if (loglevel === "DEBUG") {
+        if (loglevel == "DEBUG") {
             console.log(`Last ${lines} lines of ${serviceName} log:`);
             console.log(stdout);
         }
@@ -85,7 +85,7 @@ function countServiceLog(serviceName, numLines, phrase) {
             readServiceLog(serviceName, numLines).then((stdout) => {
                 const logsArray = stdout.split('\n');
                 const count = logsArray.filter((log) => log.includes(phrase)).length;
-                if (loglevel === "DEBUG") {
+                if (loglevel == "DEBUG") {
                     console.log(`Last ${serviceName} ${numLines} logs: included ${count} logs with phrase ${phrase}`);
                 }
                 return count;
@@ -109,10 +109,13 @@ function start() {
                 console.log(`Last ${serviceName} ${numLines} logs over ${thresholds} logs with phrase ${phraseToFind_no_header} or ${phraseToFind_no_body}. Restarting service ...`);
                 restartService(serviceName);
             }
-            else if(loglevel === "DEBUG"){
+            else if(loglevel == "DEBUG"){
                 console.log(`No header occurred times: ${countReturn_noheader} `);
                 console.log(`No body occurred times: ${countReturn_nobody} `);
             }
+        }
+        else {
+            console.error(`Error checking status of ${serviceName}: non-active state`);
         }
     } catch (e) {
         console.log(e);
