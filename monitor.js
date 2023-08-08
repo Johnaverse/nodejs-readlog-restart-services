@@ -36,10 +36,6 @@ register.registerMetric(serviceRestartCounter);
 register.registerMetric(erigonNoHeaderCounter);
 register.registerMetric(erigonNoBodyCounter);
 
-register.setDefaultLabels({
-    app: 'nodejs-readlog-restart-service'
-});
-
 function restartService(serviceName) {
     exec(`sudo systemctl restart ${serviceName}`, async (error, stdout, stderr) => {
         if (error) {
