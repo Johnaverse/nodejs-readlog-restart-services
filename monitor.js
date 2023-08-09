@@ -39,7 +39,7 @@ register.registerMetric(erigonNoBodyCounter);
 
 function restartService(serviceName) {
     return new Promise((resolve, rejects) => {
-        exec(`sudo systemctl restart ${serviceName}`, async (error, stdout, stderr) => {
+        exec(`systemctl restart ${serviceName}`, async (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error starting ${serviceName}: ${error.message}`);
                 rejects(error);
@@ -90,18 +90,18 @@ function countServiceLog(serviceName, numLines, phrase) {
         checkServiceStatus(serviceName).then((active) => {
             if (active) {
                 readServiceLog(serviceName, numLines)
-                .then((stdout) => {
-                    const logsArray = stdout.split('\n');
-                    const count = logsArray.filter((log) => log.includes(phrase)).length;
-                    if (loglevel == "DEBUG") {
-                        console.log(`Last ${serviceName} ${numLines} logs: included ${count} logs with phrase ${phrase}`);
-                    }
-                    resolve(count);
-                })
-                .catch((error)=>{rejects(error)});
+                    .then((stdout) => {
+                        const logsArray = stdout.split('\n');
+                        const count = logsArray.filter((log) => log.includes(phrase)).length;
+                        if (loglevel == "DEBUG") {
+                            console.log(`Last ${serviceName} ${numLines} logs: included ${count} logs with phrase ${phrase}`);
+                        }
+                        resolve(count);
+                    })
+                    .catch((error) => { rejects(error) });
             }
         })
-        .catch((error)=>{rejects(error)});
+            .catch((error) => { rejects(error) });
     });
 }
 
@@ -116,9 +116,14 @@ function start() {
 
                 if (countReturn_noheader > thresholds || countReturn_nobody > thresholds) {
                     console.log(`Last ${serviceName} ${numLines} logs over ${thresholds} logs with phrase ${phraseToFind_no_header} or ${phraseToFind_no_body}. Restarting service ...`);
-                    restartService(serviceName);
+                    restartService(serviceName).then(() => {
+                        console.log(`Restart successfully.`)
+                    })
+                        .catch((e) => {
+                            console.log(e);
+                        })
                 }
-                else if (loglevel == "DEBUG") {
+                if (loglevel == "DEBUG") {
                     console.log(`No header occurred times: ${countReturn_noheader} `);
                     console.log(`No body occurred times: ${countReturn_nobody} `);
                 }
