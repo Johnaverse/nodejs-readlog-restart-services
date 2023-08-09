@@ -8,7 +8,7 @@ const app = express();
 
 const serviceName = process.env.MONITOR_SERVICE_NAME ? process.env.MONITOR_SERVICE_NAME : 'ssh';          // service name. Default ssh.
 const numLines = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 50;                                // number of lines to read from the log 
-const thresholds = process.env.NUM_LOG_LINE ? process.env.NUM_LOG_LINE : 15;                              // thresholds trigger restart
+const thresholds = process.env.LOG_THRESHOLDS ? process.env.LOG_THRESHOLDS : 15;                              // thresholds trigger restart
 const phraseToFind_no_header = process.env.PHRASE_TO_FIND_NO_HEADER ? process.env.PHRASE_TO_FIND_NO_HEADER : 'No block headers to write in this log period block number';               // phrase for finding trigger log
 const phraseToFind_no_body = process.env.PHRASE_TO_FIND_NO_BODY ? process.env.PHRASE_TO_FIND_NO_BODY : 'No block bodies to write in this log period block number';                     // phrase for finding trigger log
 const promPort = process.env.PROM_PORT ? process.env.PROM_PORT : 9102;                                    // prometheus port. Default 9102.
